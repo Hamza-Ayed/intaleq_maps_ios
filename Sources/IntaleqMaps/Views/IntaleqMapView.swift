@@ -221,6 +221,12 @@ public class IntaleqMapView: InlqBaseView, WKScriptMessageHandler, WKNavigationD
                let zoom = dict["zoom"] as? Double,
                let pitch = dict["pitch"] as? Double,
                let bearing = dict["bearing"] as? Double {
+                IntaleqTelemetryService.shared.recordPosition(
+                    latitude: lat,
+                    longitude: lng,
+                    speedKmH: 0.0,
+                    heading: bearing
+                )
                 let pos = InlqCameraPosition(
                     target: InlqLatLng(latitude: lat, longitude: lng),
                     zoom: Float(zoom),

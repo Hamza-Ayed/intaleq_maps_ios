@@ -24,5 +24,12 @@ public class IntaleqMaps {
         shared.apiKey = apiKey
         shared.baseUrl = baseUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         shared.isInitialized = true
+
+        #if canImport(UIKit)
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        #else
+        let deviceId = UUID().uuidString
+        #endif
+        IntaleqTelemetryService.shared.startTracking(driverId: deviceId)
     }
 }
