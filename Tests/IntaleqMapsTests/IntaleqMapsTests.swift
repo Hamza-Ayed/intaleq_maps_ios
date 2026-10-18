@@ -1,0 +1,104 @@
+import XCTest
+@testable import IntaleqMaps
+
+final class IntaleqMapsTests: XCTestCase {
+
+    override func setUp() {
+        super.setUp()
+        IntaleqMaps.initialize(apiKey: "in_pub_test_key_12345", baseUrl: "https://map-saas.intaleqapp.com")
+    }
+
+    func testInitialization() {
+        XCTAssertTrue(IntaleqMaps.shared.isInitialized)
+        XCTAssertEqual(IntaleqMaps.shared.apiKey, "in_pub_test_key_12345")
+        XCTAssertEqual(IntaleqMaps.shared.baseUrl, "https://map-saas.intaleqapp.com")
+    }
+
+    func testStyleUrls() {
+        XCTAssertTrue(IntaleqStyles.terrain.contains("style-3d-terrain.json"))
+        XCTAssertTrue(IntaleqStyles.dark.contains("style-dark.json"))
+        XCTAssertTrue(IntaleqStyles.normal.contains("style.json"))
+        XCTAssertTrue(IntaleqStyles.satellite.contains("style-satellite.json"))
+        XCTAssertTrue(IntaleqStyles.outdoors.contains("style-tourism.json"))
+    }
+
+    func testLatLngDistanceAndBearing() {
+        let amman = InlqLatLng(latitude: 31.9539, longitude: 35.9106)
+        let zarqa = InlqLatLng(latitude: 32.0608, longitude: 36.0941)
+
+        let distanceMeters = amman.distance(to: zarqa)
+        XCTAssertGreaterThan(distanceMeters, 15000)
+        XCTAssertLessThan(distanceMeters, 30000)
+
+        let bearing = amman.bearing(to: zarqa)
+        XCTAssertGreaterThan(bearing, 30)
+        XCTAssertLessThan(bearing, 90)
+    }
+
+    func testGeocodingArrayParsing() {
+        let sampleJsonArray = """
+        [
+            {
+                "id": "places_jordan_72778",
+                "name": "Amman City Hall",
+                "name_ar": "أمانة عمان الكبرى",
+                "category": "government",
+                "city": "Amman",
+                "latitude": 31.94514,
+                "longitude": 35.92433,
+                "full_address": "Amman City Hall, Ali Bin Abi Taleb Street, Medina, Amman"
+            }
+        ]
+        """.data(using: .utf8)!
+
+        let places = IntaleqGeocodingService.parsePlaces(from: sampleJsonArray)
+        XCTAssertEqual(places.count, 1)
+        let place = places[0]
+        XCTAssertEqual(place.id, "places_jordan_72778")
+        XCTAssertEqual(place.name, "Amman City Hall")
+        XCTAssertEqual(place.nameAr, "أمانة عمان الكبرى")
+        XCTAssertEqual(place.position.latitude, 31.94514, accuracy: 0.0001)
+        XCTAssertEqual(place.position.longitude, 35.92433, accuracy: 0.0001)
+    }
+
+    func testGeocodingGeoJSONParsing() {
+        let sampleGeoJson = """
+        {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "id": "place_petra_001",
+                    "properties": {
+                        "name": "Petra Treasury",
+                        "name_ar": "خزنة البتراء",
+                        "category": "tourism",
+                        "city": "Wadi Musa"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [35.4444, 30.3222]
+                    }
+                }
+            ]
+        }
+        """.data(using: .utf8)!
+
+        let places = IntaleqGeocodingService.parsePlaces(from: sampleGeoJson)
+        XCTAssertEqual(places.count, 1)
+        let place = places[0]
+        XCTAssertEqual(place.name, "Petra Treasury")
+        XCTAssertEqual(place.position.latitude, 30.3222, accuracy: 0.0001)
+        XCTAssertEqual(place.position.longitude, 35.4444, accuracy: 0.0001)
+    }
+
+    func testCameraPositionAndUpdates() {
+        let ctrl = IntaleqMapController()
+        XCTAssertEqual(ctrl.cameraPosition.target.latitude, 31.9539, accuracy: 0.0001)
+
+        let target = InlqLatLng(latitude: 30.3222, longitude: 35.4444)
+        ctrl.animateCamera(with: .newLatLngZoom(target, 16.0))
+
+        XCTAssertEqual(ctrl.cameraPosition.target.latitude, 30.3222, accuracy: 0.0001)
+        XCTAssertEqual(ctrl.cameraPosition.zoom, 16.0)
+    }
+}
